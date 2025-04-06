@@ -14,7 +14,8 @@ def get_embedding(text):
 def compute_similarity(text1, text2):
     emb1 = get_embedding(text1)
     emb2 = get_embedding(text2)
-    return float(util.cos_sim(emb1, emb2))
+    # Return value between 0-100 instead of 0-1
+    return float(util.cos_sim(emb1, emb2)) * 100
 
 def calculate_eligibility(candidate, job):
     skill_score = compute_similarity(candidate["skills"], job["required_skills"])
@@ -50,8 +51,11 @@ def process_candidate(candidate_id):
     cursor.execute("SELECT * FROM jobs")
     jobs = cursor.fetchall()
 
-    scores_list = []
+    # Clear existing scores for this candidate to avoid duplication
+    cursor.execute("DELETE FROM scores WHERE candidate_id = ?", (candidate_id,))
+    conn.commit()
 
+    # Process all jobs, not just top 2
     for j in jobs:
         job_id = j[0]
         job = {
@@ -61,15 +65,9 @@ def process_candidate(candidate_id):
             "qualifications": j[6] or ""
         }
 
-        scores = calculate_eligibility(candidate, job)
-        scores_list.append((job_id, *scores))  # (job_id, skill_score, edu_score, proj_score, exp_score, eligibility)
-
-    # Sort and pick top 2
-    top_scores = sorted(scores_list, key=lambda x: x[-1], reverse=True)[:2]
-
-    # Insert into scores table
-    for s in top_scores:
-        job_id, skill_score, education_score, project_score, experience_score, eligibility_score = s
+        skill_score, education_score, project_score, experience_score, eligibility_score = calculate_eligibility(candidate, job)
+        
+        # Insert score for each job
         cursor.execute("""
             INSERT INTO scores (
                 candidate_id, job_id,
@@ -85,5 +83,4 @@ def process_candidate(candidate_id):
         ))
 
     conn.commit()
-    print(f"✅ Top 2 job scores inserted for candidate ID {candidate_id}")
-
+    print(f"✅ Job scores inserted for candidate ID {candidate_id}")
