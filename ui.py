@@ -39,14 +39,9 @@ def get_db_connection():
 
 # Parse resume (placeholder)
 def parse_resume(file_path):
-    parse_and_store_resume(file_path)
+    st.session_state.candidate_id=parse_and_store_resume(file_path)
     st.success(f"Resume parsed successfully!")
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT MAX(candidate_id) FROM candidates")
-    candidate_id = cursor.fetchone()[0]
-    conn.close()
-    return candidate_id
+    return st.session_state.candidate_id
 
 # Compute scores (placeholder)
 def compute_scores(candidate_id):

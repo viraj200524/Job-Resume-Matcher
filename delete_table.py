@@ -5,7 +5,7 @@ conn = sqlite3.connect("job_matching.db")
 cursor = conn.cursor()
 
 # Name of the table you want to clear
-table_name = "scores"  # or "Company", "Scores", etc.
+table_name = "candidates"  # or "Company", "Scores", etc.
 
 # Delete all rows from the table
 cursor.execute(f"DELETE FROM {table_name}")
