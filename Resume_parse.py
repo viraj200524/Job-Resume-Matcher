@@ -64,29 +64,26 @@ def parse_resume_with_llm(resume_text):
 
 import sqlite3
 
-import sqlite3
-
 def insert_into_db(data, db_path="job_matching.db"):
-    """Insert or update parsed resume data in SQLite database and return candidate_id."""
+    """Insert or update parsed resume data into SQLite database."""
     conn = sqlite3.connect(db_path, check_same_thread=False)
     cursor = conn.cursor()
 
+    # Extract values
     email = data.get("Email", "None")
-    result = None
 
-    # Check if candidate with the same email already exists
-    cursor.execute("SELECT candidate_id FROM candidates WHERE email = ?", (email,))
-    result = cursor.fetchone()
+    # Check if a candidate with this email already exists
+    cursor.execute("SELECT * FROM candidates WHERE email = ?", (email,))
+    existing = cursor.fetchone()
 
-    if result is not None:
-        # Candidate exists: update their record
-        candidate_id = result[0]
-        update_query = """
+    if existing:
+        # Update existing record
+        query = """
         UPDATE candidates
         SET name = ?, phone = ?, linkedin = ?, skills = ?, qualifications = ?, projects = ?, experience = ?
         WHERE email = ?
         """
-        cursor.execute(update_query, (
+        values = (
             data.get("Name", "None"),
             data.get("Phone", "None"),
             data.get("LinkedIn", "None"),
@@ -95,15 +92,16 @@ def insert_into_db(data, db_path="job_matching.db"):
             data.get("Projects", "None"),
             data.get("Experience", "None"),
             email
-        ))
-        print("🔁 Candidate updated successfully!")
+        )
+        cursor.execute(query, values)
+        print("🔄 Candidate updated successfully!")
     else:
-        # Candidate does not exist: insert new
-        insert_query = """
+        # Insert new record
+        query = """
         INSERT INTO candidates (name, email, phone, linkedin, skills, qualifications, projects, experience)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
-        cursor.execute(insert_query, (
+        values = (
             data.get("Name", "None"),
             email,
             data.get("Phone", "None"),
@@ -112,15 +110,12 @@ def insert_into_db(data, db_path="job_matching.db"):
             data.get("Qualifications", "None"),
             data.get("Projects", "None"),
             data.get("Experience", "None")
-        ))
-        candidate_id = cursor.lastrowid
+        )
+        cursor.execute(query, values)
         print("✅ Candidate inserted successfully!")
 
     conn.commit()
     conn.close()
-
-    return candidate_id
-
 
 
 def parse_and_store_resume(pdf_path, output_json_path="resume_data.json"):
@@ -128,17 +123,11 @@ def parse_and_store_resume(pdf_path, output_json_path="resume_data.json"):
     print(f"📄 Processing resume: {pdf_path}")
     resume_text = extract_resume_text(pdf_path)
     parsed_data = parse_resume_with_llm(resume_text)
-
     if parsed_data:
-        with open(output_json_path, 'w', encoding='utf-8') as f:
-            json.dump(parsed_data, f, indent=4, ensure_ascii=False)
-        print(f"💾 Data saved to {output_json_path}")
-
-        candidate_id=insert_into_db(parsed_data)
+        insert_into_db(parsed_data)
     else:
         print("❌ Failed to parse resume.")
-    return candidate_id
-
+    return parsed_data
 # Example usage
 if __name__ == "__main__":
     parse_and_store_resume('./CVs1/C1061.pdf')
