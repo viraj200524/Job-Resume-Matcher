@@ -184,13 +184,8 @@ with tabs[0]:
                     f.write(uploaded_file.getbuffer())
                 
                 # Parse resume
-                parse_and_store_resume(temp_path)
-                
-                # Load the parsed data from JSON file
-                import json
-                with open("resume_data.json", 'r') as f:
-                    parsed_data = json.load(f)
-                    st.session_state['parsed_data'] = parsed_data
+                parsed_data=parse_and_store_resume(temp_path)
+                st.session_state['parsed_data']=parsed_data
                 
                 # Extract email and set user_id
                 email = extract_email_from_parsed_data(parsed_data)
@@ -294,7 +289,7 @@ with tabs[1]:
                 }
             ))
             fig.update_layout(height=250, margin=dict(l=20, r=20, t=50, b=20))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True, key="chart1")
             
             if completeness < 70:
                 st.warning("This candidate's profile needs more details for better job matching.")
@@ -390,7 +385,7 @@ with tabs[2]:
                     hover_data=['company', 'location', 'skill_score', 'education_score', 'experience_score']
                 )
                 fig.update_layout(height=400, yaxis={'categoryorder':'total ascending'})
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, key="chart2")
                 
                 # Detailed match listings
                 st.subheader("Detailed Job Matches")
@@ -457,7 +452,7 @@ with tabs[2]:
                                 height=300,
                                 margin=dict(l=10, r=10, t=10, b=10)
                             )
-                            st.plotly_chart(fig, use_container_width=True)
+                            st.plotly_chart(fig, use_container_width=True, key=f"chart_{i+3}")
                             
                             st.markdown(f"**Overall Match:** {row['Match Score']}")
                             st.markdown("**Compatibility Breakdown:**")

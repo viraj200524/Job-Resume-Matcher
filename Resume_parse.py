@@ -62,46 +62,72 @@ def parse_resume_with_llm(resume_text):
         print(f"Error parsing JSON: {e}")
         return {}
 
+import sqlite3
+
 def insert_into_db(data, db_path="job_matching.db"):
-    """Insert parsed resume data into SQLite database."""
+    """Insert or update parsed resume data into SQLite database."""
     conn = sqlite3.connect(db_path, check_same_thread=False)
     cursor = conn.cursor()
 
-    query = """
-    INSERT INTO candidates (name, email, phone, linkedin, skills, qualifications, projects, experience)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """
-    values = (
-        data.get("Name", "None"),
-        data.get("Email", "None"),
-        data.get("Phone", "None"),
-        data.get("LinkedIn", "None"),
-        data.get("Required Skills", "None"),
-        data.get("Qualifications", "None"),
-        data.get("Projects", "None"),
-        data.get("Experience", "None")
-    )
+    # Extract values
+    email = data.get("Email", "None")
 
-    cursor.execute(query, values)
+    # Check if a candidate with this email already exists
+    cursor.execute("SELECT * FROM candidates WHERE email = ?", (email,))
+    existing = cursor.fetchone()
+
+    if existing:
+        # Update existing record
+        query = """
+        UPDATE candidates
+        SET name = ?, phone = ?, linkedin = ?, skills = ?, qualifications = ?, projects = ?, experience = ?
+        WHERE email = ?
+        """
+        values = (
+            data.get("Name", "None"),
+            data.get("Phone", "None"),
+            data.get("LinkedIn", "None"),
+            data.get("Required Skills", "None"),
+            data.get("Qualifications", "None"),
+            data.get("Projects", "None"),
+            data.get("Experience", "None"),
+            email
+        )
+        cursor.execute(query, values)
+        print("🔄 Candidate updated successfully!")
+    else:
+        # Insert new record
+        query = """
+        INSERT INTO candidates (name, email, phone, linkedin, skills, qualifications, projects, experience)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
+        values = (
+            data.get("Name", "None"),
+            email,
+            data.get("Phone", "None"),
+            data.get("LinkedIn", "None"),
+            data.get("Required Skills", "None"),
+            data.get("Qualifications", "None"),
+            data.get("Projects", "None"),
+            data.get("Experience", "None")
+        )
+        cursor.execute(query, values)
+        print("✅ Candidate inserted successfully!")
+
     conn.commit()
     conn.close()
-    print("✅ Candidate inserted successfully!")
+
 
 def parse_and_store_resume(pdf_path, output_json_path="resume_data.json"):
     """End-to-end function: parse resume and store to JSON and DB."""
     print(f"📄 Processing resume: {pdf_path}")
     resume_text = extract_resume_text(pdf_path)
     parsed_data = parse_resume_with_llm(resume_text)
-
     if parsed_data:
-        with open(output_json_path, 'w', encoding='utf-8') as f:
-            json.dump(parsed_data, f, indent=4, ensure_ascii=False)
-        print(f"💾 Data saved to {output_json_path}")
-
         insert_into_db(parsed_data)
     else:
         print("❌ Failed to parse resume.")
-
+    return parsed_data
 # Example usage
 if __name__ == "__main__":
     parse_and_store_resume('./CVs1/C1061.pdf')
