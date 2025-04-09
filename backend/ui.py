@@ -5,8 +5,8 @@ import pandas as pd
 import sqlite3
 import matplotlib.pyplot as plt
 import seaborn as sns
-from Resume_parse import parse_and_store_resume
-from compute_scores import process_candidate
+from backend.Resume_parse import parse_and_store_resume
+from backend.compute_scores import process_candidate
 import plotly.express as px
 import plotly.graph_objects as go
 import time
