@@ -132,7 +132,7 @@ Return the following fields:
 }}
 Skills, Tech Stack, Certifications and Courses should be a comma seperated strings if not empty and after parsing combine all these in a single string named Required Skills.
 Education should also be a comma seperated string and rename that attribute to Qualifications.
-For Projects only analyze the domains and expertise and write them as comma seperated string.
+Add a new attribue named Project_skills and then from Projects only analyze the domains and expertise and write them as comma seperated string in it.
 Experience and Achievements should also be comma seperated strings and combine them both under a single header of Experience.
 Ensure all values are extracted if available, else return the string "None".
 Only return the JSON — no explanation.
@@ -157,31 +157,6 @@ def parse_resume_with_llm(resume_text):
         print(f"Error parsing JSON: {e}")
         return {}
 
-def insert_candidate_into_db(data):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    query = """
-    INSERT INTO candidates (name, email, phone, linkedin, skills, qualifications, projects, experience)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """
-    values = (
-        data.get("Name", "None"),
-        data.get("Email", "None"),
-        data.get("Phone", "None"),
-        data.get("LinkedIn", "None"),
-        data.get("Required Skills", "None"),
-        data.get("Qualifications", "None"),
-        data.get("Projects", "None"),
-        data.get("Experience", "None")
-    )
-
-    cursor.execute(query, values)
-    candidate_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
-    
-    return candidate_id
 
 def insert_job_into_db(data):
     conn = get_db_connection()
@@ -329,7 +304,7 @@ def compute_similarity(text1, text2):
 def calculate_eligibility(candidate, job):
     skill_score = compute_similarity(candidate["skills"], job["required_skills"])
     education_score = compute_similarity(candidate["qualifications"], job["qualifications"])
-    project_score = compute_similarity(candidate["projects"], job["job_title"])  
+    project_score = compute_similarity(candidate["Project_skills"], job["required_skills"])  
     experience_score = compute_similarity(candidate["experience"], job["experience"])
 
     eligibility_score = (
