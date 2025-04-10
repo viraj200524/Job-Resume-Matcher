@@ -82,6 +82,14 @@ export async function getCandidate(id: number): Promise<{ candidate: Candidate }
   return response.json()
 }
 
+export async function getCandidateByEmail(email: string): Promise<{ candidate: Candidate }> {
+  const response = await fetch(`${API_BASE_URL}/candidates/email/${email}`)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch candidate: ${response.statusText}`)
+  }
+  return response.json()
+}
+
 export async function getJobs(): Promise<{ jobs: Job[] }> {
   const response = await fetch(`${API_BASE_URL}/jobs`)
   if (!response.ok) {

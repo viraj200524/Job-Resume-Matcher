@@ -46,7 +46,7 @@ export default function CandidateAnalytics() {
       try {
         setLoading(true)
         // For demo purposes, we'll use candidate ID 1
-        const candidateId = 1
+        const candidateId = 10
 
         // Fetch candidate details
         const candidateResponse = await getCandidate(candidateId)

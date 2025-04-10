@@ -7,24 +7,50 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Building, MapPin, Search, Filter, ArrowUpDown, Sparkles } from "lucide-react"
+import { Building, MapPin, Search, Filter, ArrowUpDown, Sparkles, Loader2 } from 'lucide-react'
 import Link from "next/link"
-import { getCandidateMatches } from "@/lib/api"
+import { getCandidateMatches, getCandidateByEmail } from "@/lib/api"
 import type { Score } from "@/lib/api"
+import { useAuth } from "@/lib/auth"
+import { AuthCheck } from "@/components/auth-check"
+import { ResumeUploader } from "@/components/candidate/resume-uploader"
 
 export default function CandidateMatches() {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [jobMatches, setJobMatches] = useState<Score[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("all")
+  const [needsResume, setNeedsResume] = useState(false)
 
   useEffect(() => {
     const fetchMatches = async () => {
+      if (!user || !user.email) return
+
       try {
         setLoading(true)
-        // For demo purposes, we'll use candidate ID 1
-        const candidateId = 4
+        
+        // Fetch candidate details by email
+        let candidateResponse;
+        try {
+          candidateResponse = await getCandidateByEmail(user.email);
+          
+          if (!candidateResponse.candidate) {
+            setNeedsResume(true);
+            setLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error("Error fetching candidate by email:", error);
+          setNeedsResume(true);
+          setLoading(false);
+          return;
+        }
+        
+        const candidateId = candidateResponse.candidate.candidate_id;
+
+        // Fetch matches
         const response = await getCandidateMatches(candidateId)
         setJobMatches(response.matches)
       } catch (error) {
@@ -35,8 +61,10 @@ export default function CandidateMatches() {
       }
     }
 
-    fetchMatches()
-  }, [])
+    if (user) {
+      fetchMatches()
+    }
+  }, [user])
 
   // Filter jobs based on search term and active tab
   const filteredJobs = jobMatches.filter((job) => {
@@ -53,15 +81,52 @@ export default function CandidateMatches() {
     return matchesSearch
   })
 
+  if (!user) {
+    return <AuthCheck requiredRole="candidate" />
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Loading job matches...</p>
         </div>
       </div>
     )
+  }
+
+  if (needsResume) {
+    return (
+      <div className="container mx-auto p-6 bg-grid">
+        <div className="max-w-2xl mx-auto">
+          <Card className="border-0 shadow-md rounded-xl overflow-hidden gradient-border">
+            <CardContent className="p-6 space-y-6">
+              <div className="text-center">
+                <Sparkles className="h-12 w-12 text-primary mx-auto mb-4" />
+                <h2 className="text-2xl font-bold mb-2">Complete Your Profile</h2>
+                <p className="text-muted-foreground mb-6">
+                  Please upload your resume to get personalized job matches
+                </p>
+              </div>
+              <ResumeUploader />
+              <div className="text-center mt-4">
+                <p className="text-xs text-muted-foreground">
+                  After uploading your resume, refresh the page to see your job matches.
+                </p>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  variant="outline" 
+                  className="mt-2"
+                >
+                  Refresh Page
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   if (error) {

@@ -9,12 +9,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { ResumeUploader } from "@/components/candidate/resume-uploader"
-import { getCandidate } from "@/lib/api"
+import { getCandidateByEmail } from "@/lib/api"
 import type { Candidate } from "@/lib/api"
 import { Sparkles } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/lib/auth"
+import { AuthCheck } from "@/components/auth-check"
 
 export default function CandidateProfile() {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [candidate, setCandidate] = useState<Candidate | null>(null)
@@ -23,11 +26,11 @@ export default function CandidateProfile() {
 
   useEffect(() => {
     const fetchCandidate = async () => {
+      if (!user?.email) return
+
       try {
         setLoading(true)
-        // For demo purposes, we'll use candidate ID 1
-        const candidateId = 4
-        const response = await getCandidate(candidateId)
+        const response = await getCandidateByEmail(user.email)
         setCandidate(response.candidate)
       } catch (error) {
         console.error("Error fetching candidate:", error)
@@ -37,8 +40,10 @@ export default function CandidateProfile() {
       }
     }
 
-    fetchCandidate()
-  }, [])
+    if (user) {
+      fetchCandidate()
+    }
+  }, [user])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -53,6 +58,10 @@ export default function CandidateProfile() {
         description: "Your profile has been successfully updated.",
       })
     }, 1000)
+  }
+
+  if (!user) {
+    return <AuthCheck requiredRole="candidate" />
   }
 
   if (loading) {
@@ -73,19 +82,6 @@ export default function CandidateProfile() {
           <div className="text-red-500 text-5xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold mb-2">Something went wrong</h2>
           <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>Try Again</Button>
-        </div>
-      </div>
-    )
-  }
-
-  if (!candidate) {
-    return (
-      <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
-        <div className="text-center max-w-md">
-          <div className="text-yellow-500 text-5xl mb-4">⚠️</div>
-          <h2 className="text-2xl font-bold mb-2">Profile Not Found</h2>
-          <p className="text-muted-foreground mb-4">We couldn't find your profile information.</p>
           <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
       </div>
@@ -116,7 +112,7 @@ export default function CandidateProfile() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" placeholder="John Doe" defaultValue={candidate.name || ""} />
+                    <Input id="name" placeholder="John Doe" defaultValue={candidate?.name || user?.name || ""} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -124,21 +120,22 @@ export default function CandidateProfile() {
                       id="email"
                       type="email"
                       placeholder="john@example.com"
-                      defaultValue={candidate.email || ""}
+                      defaultValue={candidate?.email || user?.email || ""}
+                      disabled
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone</Label>
-                    <Input id="phone" placeholder="+1 (555) 123-4567" defaultValue={candidate.phone || ""} />
+                    <Input id="phone" placeholder="+1 (555) 123-4567" defaultValue={candidate?.phone || ""} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="linkedin">LinkedIn</Label>
                     <Input
                       id="linkedin"
                       placeholder="linkedin.com/in/johndoe"
-                      defaultValue={candidate.linkedin || ""}
+                      defaultValue={candidate?.linkedin || ""}
                     />
                   </div>
                 </div>
@@ -147,13 +144,13 @@ export default function CandidateProfile() {
                   <Textarea
                     id="bio"
                     placeholder="Write a short professional summary"
-                    defaultValue={candidate.experience || ""}
+                    defaultValue={candidate?.experience || ""}
                     rows={4}
                   />
                 </div>
                 <Button
                   type="submit"
-                  className="bg-gradient-bg text-white border-0 shadow-md hover:shadow-lg transition-all"
+                  className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white border-0 shadow-md hover:shadow-lg transition-all"
                   disabled={saving}
                 >
                   {saving ? "Saving..." : "Save Changes"}
@@ -174,7 +171,7 @@ export default function CandidateProfile() {
                   <Textarea
                     id="skills"
                     placeholder="React, JavaScript, TypeScript, CSS, HTML, Node.js"
-                    defaultValue={candidate.skills || ""}
+                    defaultValue={candidate?.skills || ""}
                     rows={3}
                   />
                 </div>
@@ -183,13 +180,13 @@ export default function CandidateProfile() {
                   <Textarea
                     id="experience"
                     placeholder="Describe your work experience"
-                    defaultValue={candidate.experience || ""}
+                    defaultValue={candidate?.experience || ""}
                     rows={4}
                   />
                 </div>
                 <Button
                   type="submit"
-                  className="bg-gradient-bg text-white border-0 shadow-md hover:shadow-lg transition-all"
+                  className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white border-0 shadow-md hover:shadow-lg transition-all"
                   disabled={saving}
                 >
                   {saving ? "Saving..." : "Save Changes"}
@@ -222,7 +219,7 @@ export default function CandidateProfile() {
                   <Textarea
                     id="qualifications"
                     placeholder="Bachelor's in Computer Science, University of Technology, 2018"
-                    defaultValue={candidate.qualifications || ""}
+                    defaultValue={candidate?.qualifications || ""}
                     rows={3}
                   />
                 </div>
@@ -237,7 +234,7 @@ export default function CandidateProfile() {
                 </div>
                 <Button
                   type="submit"
-                  className="bg-gradient-bg text-white border-0 shadow-md hover:shadow-lg transition-all"
+                  className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white border-0 shadow-md hover:shadow-lg transition-all"
                   disabled={saving}
                 >
                   {saving ? "Saving..." : "Save Changes"}
@@ -258,13 +255,13 @@ export default function CandidateProfile() {
                   <Textarea
                     id="projects"
                     placeholder="Describe your notable projects"
-                    defaultValue={candidate.projects || ""}
+                    defaultValue={candidate?.projects || ""}
                     rows={4}
                   />
                 </div>
                 <Button
                   type="submit"
-                  className="bg-gradient-bg text-white border-0 shadow-md hover:shadow-lg transition-all"
+                  className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white border-0 shadow-md hover:shadow-lg transition-all"
                   disabled={saving}
                 >
                   {saving ? "Saving..." : "Save Changes"}

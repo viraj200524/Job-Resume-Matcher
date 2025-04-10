@@ -5,15 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowRight, Briefcase, FileText, Video, Sparkles } from "lucide-react"
+import { ArrowRight, Briefcase, FileText, Video, Sparkles, Loader2 } from 'lucide-react'
 import Link from "next/link"
 import { CandidateJobMatchChart } from "@/components/candidate/job-match-chart"
 import { CandidateSkillsRadarChart } from "@/components/candidate/skills-radar-chart"
 import { RecentApplications } from "@/components/candidate/recent-applications"
 import { UpcomingInterviews } from "@/components/candidate/upcoming-interviews"
-import { getTopMatches, getCandidateApplications, getCandidate } from "@/lib/api"
+import { getTopMatches, getCandidateApplications, getCandidateByEmail } from "@/lib/api"
 import { useAuth } from "@/lib/auth"
 import { AuthCheck } from "@/components/auth-check"
+import { ResumeUploader } from "@/components/candidate/resume-uploader"
 
 export default function CandidateDashboard() {
   const { user } = useAuth()
@@ -26,33 +27,60 @@ export default function CandidateDashboard() {
     applications: 0,
     interviews: 0,
     topMatches: [],
+    candidateId: null as number | null,
   })
+  const [needsResume, setNeedsResume] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user) return
+      if (!user || !user.email) return
 
       try {
         setLoading(true)
-        const candidateId = 4
-
-        // Fetch candidate details
-        const candidateResponse = await getCandidate(candidateId)
+        
+        // Fetch candidate details by email
+        let candidateResponse;
+        try {
+          candidateResponse = await getCandidateByEmail(user.email);
+          
+          if (!candidateResponse.candidate) {
+            setNeedsResume(true);
+            setLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.error("Error fetching candidate by email:", error);
+          setNeedsResume(true);
+          setLoading(false);
+          return;
+        }
+        
+        const candidateId = candidateResponse.candidate.candidate_id;
 
         // Fetch top matches
-        const matchesResponse = await getTopMatches(candidateId)
+        let matchesResponse = { top_matches: [] };
+        try {
+          matchesResponse = await getTopMatches(candidateId);
+        } catch (error) {
+          console.error("Error fetching top matches:", error);
+        }
 
         // Fetch applications
-        const applicationsResponse = await getCandidateApplications(candidateId)
+        let applicationsResponse = { applications: [] };
+        try {
+          applicationsResponse = await getCandidateApplications(candidateId);
+        } catch (error) {
+          console.error("Error fetching applications:", error);
+        }
 
         // Calculate profile completion based on filled fields
-        const candidate = candidateResponse.candidate
-        const totalFields = Object.keys(candidate).length
-        const filledFields = Object.values(candidate).filter((value) => value && value !== "None").length
-        const profileCompletion = Math.round((filledFields / totalFields) * 100)
+        const candidate = candidateResponse.candidate;
+        const totalFields = Object.keys(candidate).length;
+        const filledFields = Object.values(candidate).filter((value) => value && value !== "None").length;
+        const profileCompletion = Math.round((filledFields / totalFields) * 100);
 
         // Count interviews (applications with status "Interview")
-        const interviews = applicationsResponse.applications.filter((app) => app.status === "Interview").length
+        const interviews = applicationsResponse.applications.filter((app) => app.status === "Interview").length;
 
         setCandidateData({
           name: candidate.name || user.name,
@@ -61,33 +89,73 @@ export default function CandidateDashboard() {
           applications: applicationsResponse.applications.length,
           interviews,
           topMatches: matchesResponse.top_matches,
-        })
+          candidateId: candidateId,
+        });
       } catch (error) {
-        console.error("Error fetching dashboard data:", error)
-        setError("Failed to load dashboard data. Please try again later.")
+        console.error("Error fetching dashboard data:", error);
+        setError("Failed to load dashboard data. Please try again later.");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
     if (user) {
-      fetchData()
+      fetchData();
     }
-  }, [user])
+  }, [user]);
 
   if (!user) {
-    return <AuthCheck requiredRole="candidate" />
+    return <AuthCheck requiredRole="candidate" />;
   }
 
   if (loading) {
     return (
       <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Loading dashboard data...</p>
         </div>
       </div>
-    )
+    );
+  }
+
+  if (needsResume) {
+    return (
+      <div className="container mx-auto p-6 bg-grid">
+        <div className="max-w-2xl mx-auto">
+          <Card className="border-0 shadow-md rounded-xl overflow-hidden gradient-border">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-primary" />
+                Complete Your Profile
+              </CardTitle>
+              <CardDescription>
+                Please upload your resume to get started with job matching
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-muted-foreground">
+                To provide you with personalized job matches, we need to analyze your resume. 
+                Please upload your resume to continue.
+              </p>
+              <ResumeUploader />
+              <div className="text-center mt-4">
+                <p className="text-xs text-muted-foreground">
+                  After uploading your resume, refresh the page to see your dashboard.
+                </p>
+                <Button 
+                  onClick={() => window.location.reload()} 
+                  variant="outline" 
+                  className="mt-2"
+                >
+                  Refresh Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -100,7 +168,7 @@ export default function CandidateDashboard() {
           <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -211,7 +279,13 @@ export default function CandidateDashboard() {
               <CardDescription>How your skills match with job requirements</CardDescription>
             </CardHeader>
             <CardContent>
-              <CandidateSkillsRadarChart candidateId={user.id} />
+              {candidateData.candidateId ? (
+                <CandidateSkillsRadarChart candidateId={candidateData.candidateId} />
+              ) : (
+                <div className="flex items-center justify-center h-[200px]">
+                  <p className="text-muted-foreground text-sm">No skills data available</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -232,13 +306,29 @@ export default function CandidateDashboard() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="applications">
-            <RecentApplications candidateId={user.id} />
+            {candidateData.candidateId ? (
+              <RecentApplications candidateId={candidateData.candidateId} />
+            ) : (
+              <Card className="border-0 shadow-md rounded-xl overflow-hidden">
+                <CardContent className="p-6 text-center">
+                  <p className="text-muted-foreground">No application data available</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
           <TabsContent value="interviews">
-            <UpcomingInterviews candidateId={user.id} />
+            {candidateData.candidateId ? (
+              <UpcomingInterviews candidateId={candidateData.candidateId} />
+            ) : (
+              <Card className="border-0 shadow-md rounded-xl overflow-hidden">
+                <CardContent className="p-6 text-center">
+                  <p className="text-muted-foreground">No interview data available</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </div>
     </AuthCheck>
-  )
+  );
 }

@@ -27,7 +27,7 @@ export default function CandidateSettings() {
       try {
         setLoading(true)
         // For demo purposes, we'll use candidate ID 1
-        const candidateId = 4
+        const candidateId = 10
         const response = await getCandidate(candidateId)
         setCandidate(response.candidate)
       } catch (error) {

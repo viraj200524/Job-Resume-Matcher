@@ -21,7 +21,7 @@ export default function CandidateApplications() {
       try {
         setLoading(true)
         // For demo purposes, we'll use candidate ID 1
-        const candidateId = 1
+        const candidateId = 10
         const response = await getCandidateApplications(candidateId)
         setApplications(response.applications)
       } catch (error) {

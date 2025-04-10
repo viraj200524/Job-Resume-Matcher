@@ -1,99 +1,110 @@
-"use client"
+import { create } from "zustand"
+import { persist } from "zustand/middleware"
+import { getCandidateByEmail } from "./api"
 
-// Simple authentication context for the application
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+export type UserRole = "candidate" | "recruiter" | null
 
-// Types
 export interface User {
-  id: number
-  name: string
+  id: number | null
   email: string
-  role: "candidate" | "recruiter"
+  name: string
+  role: UserRole
+  isAuthenticated: boolean
 }
 
-interface AuthContextType {
+interface AuthState {
   user: User | null
-  loading: boolean
-  login: (email: string, password: string) => Promise<void>
+  setUser: (user: User | null) => void
+  login: (email: string, password: string, role: UserRole) => Promise<User>
+  register: (name: string, email: string, password: string, role: UserRole) => Promise<User>
   logout: () => void
-  error: string | null
+  isLoading: boolean
+  setIsLoading: (isLoading: boolean) => void
 }
 
-// Create context
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-// Sample users for demo purposes
-// In a real app, this would be authenticated against a backend
-const SAMPLE_USERS: User[] = [
-  {
-    id: 1,
-    name: "John Doe",
-    email: "candidate@example.com",
-    role: "candidate",
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    email: "recruiter@example.com",
-    role: "recruiter",
-  },
-]
-
-// Provider component
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  // Check for existing session on mount
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+export const useAuth = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      isLoading: false,
+      setUser: (user) => set({ user }),
+      setIsLoading: (isLoading) => set({ isLoading }),
+      login: async (email, password, role) => {
+        set({ isLoading: true })
+        
+        try {
+          // In a real app, this would be an API call to authenticate
+          // For demo purposes, we'll simulate a successful login
+          
+          // If role is candidate, try to fetch candidate data by email
+          let userId = null
+          let userName = ""
+          
+          if (role === "candidate") {
+            try {
+              const response = await getCandidateByEmail(email)
+              if (response.candidate) {
+                userId = response.candidate.candidate_id
+                userName = response.candidate.name
+              }
+            } catch (error) {
+              console.error("Error fetching candidate:", error)
+              // If candidate not found, we'll use demo data
+              userId = 1
+              userName = "Demo Candidate"
+            }
+          } else {
+            // For recruiters, use demo data
+            userId = 1
+            userName = "Demo Recruiter"
+          }
+          
+          const user: User = {
+            id: userId,
+            email,
+            name: userName,
+            role,
+            isAuthenticated: true,
+          }
+          
+          set({ user, isLoading: false })
+          return user
+        } catch (error) {
+          set({ isLoading: false })
+          throw new Error("Login failed")
+        }
+      },
+      register: async (name, email, password, role) => {
+        set({ isLoading: true })
+        
+        try {
+          // In a real app, this would be an API call to register
+          // For demo purposes, we'll simulate a successful registration
+          
+          // For candidates, we would create a new candidate record
+          // For recruiters, we would create a new recruiter record
+          
+          const user: User = {
+            id: 1, // This would be returned from the API
+            email,
+            name,
+            role,
+            isAuthenticated: true,
+          }
+          
+          set({ user, isLoading: false })
+          return user
+        } catch (error) {
+          set({ isLoading: false })
+          throw new Error("Registration failed")
+        }
+      },
+      logout: () => {
+        set({ user: null })
+      },
+    }),
+    {
+      name: "auth-storage",
     }
-    setLoading(false)
-  }, [])
-
-  // Login function
-  const login = async (email: string, password: string) => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Find user by email
-      const foundUser = SAMPLE_USERS.find((u) => u.email.toLowerCase() === email.toLowerCase())
-
-      if (foundUser) {
-        // In a real app, you would verify the password here
-        setUser(foundUser)
-        localStorage.setItem("user", JSON.stringify(foundUser))
-      } else {
-        throw new Error("Invalid email or password")
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred during login")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Logout function
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("user")
-  }
-
-  return <AuthContext.Provider value={{ user, loading, login, logout, error }}>{children}</AuthContext.Provider>
-}
-
-// Hook for using auth context
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
-  return context
-}
+  )
+)

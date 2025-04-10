@@ -4,29 +4,32 @@ import type React from "react"
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { FileText, Upload, CheckCircle, AlertCircle } from "lucide-react"
-import { uploadResume } from "@/lib/api"
+import { Card } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
+import { uploadResume } from "@/lib/api"
+import { useAuth } from "@/lib/auth"
+import { FileText, Upload, X, Check, Loader2 } from "lucide-react"
 
 export function ResumeUploader() {
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
-  const [progress, setProgress] = useState(0)
   const [uploadSuccess, setUploadSuccess] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
+  const { user, setUser } = useAuth()
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     if (selectedFile) {
       if (selectedFile.type !== "application/pdf") {
-        setError("Please upload a PDF file")
+        toast({
+          title: "Invalid file type",
+          description: "Please upload a PDF file",
+          variant: "destructive",
+        })
         return
       }
       setFile(selectedFile)
-      setError(null)
+      setUploadSuccess(false)
     }
   }
 
@@ -34,112 +37,118 @@ export function ResumeUploader() {
     if (!file) return
 
     setUploading(true)
-    setProgress(0)
-    setError(null)
-
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 95) {
-          clearInterval(progressInterval)
-          return 95
-        }
-        return prev + 5
-      })
-    }, 100)
-
     try {
       const response = await uploadResume(file)
-      clearInterval(progressInterval)
-      setProgress(100)
-      setUploadSuccess(true)
 
+      // Update user with candidate ID if available
+      if (response.candidate_id && user) {
+        setUser({
+          ...user,
+          id: response.candidate_id,
+        })
+      }
+
+      setUploadSuccess(true)
       toast({
         title: "Resume uploaded successfully",
         description: "Your resume has been processed and your profile has been updated.",
       })
-    } catch (err) {
-      clearInterval(progressInterval)
-      setProgress(0)
-      setError("Failed to upload resume. Please try again.")
-
+    } catch (error) {
+      console.error("Error uploading resume:", error)
       toast({
-        variant: "destructive",
         title: "Upload failed",
         description: "There was an error uploading your resume. Please try again.",
+        variant: "destructive",
       })
     } finally {
       setUploading(false)
     }
   }
 
+  const handleRemoveFile = () => {
+    setFile(null)
+    setUploadSuccess(false)
+  }
+
   return (
     <div className="space-y-4">
-      {!uploadSuccess ? (
-        <>
-          <div className="border-2 border-dashed rounded-lg p-6 text-center">
-            <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Upload your resume</h3>
-            <p className="text-sm text-muted-foreground mb-4">Supported format: PDF</p>
-            <input
-              type="file"
-              id="resume-upload"
-              accept=".pdf"
-              onChange={handleFileChange}
-              className="hidden"
-              disabled={uploading}
-            />
-            <Button asChild variant="outline" className="gap-2" disabled={uploading}>
-              <label htmlFor="resume-upload">
-                <Upload className="h-4 w-4" />
-                Select File
-              </label>
-            </Button>
-          </div>
-
-          {file && (
-            <div className="bg-muted p-3 rounded-lg flex items-center justify-between">
-              <div className="flex items-center">
-                <FileText className="h-5 w-5 mr-2 text-primary" />
+      <div className="flex items-center justify-center w-full">
+        <label
+          htmlFor="resume-upload"
+          className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 ${
+            file ? "border-primary/50 bg-primary/5" : "border-gray-300"
+          }`}
+        >
+          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            {!file ? (
+              <>
+                <Upload className="w-8 h-8 mb-2 text-gray-500" />
+                <p className="mb-2 text-sm text-gray-500">
+                  <span className="font-semibold">Click to upload</span> or drag and drop
+                </p>
+                <p className="text-xs text-gray-500">PDF (MAX. 10MB)</p>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
+                <FileText className="w-8 h-8 text-primary" />
                 <div>
-                  <p className="text-sm font-medium">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <p className="text-sm font-medium truncate max-w-[200px]">{file.name}</p>
+                  <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                 </div>
               </div>
-              <Button onClick={handleUpload} disabled={uploading} size="sm">
-                {uploading ? "Uploading..." : "Upload"}
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
+          <input
+            id="resume-upload"
+            type="file"
+            accept=".pdf"
+            className="hidden"
+            onChange={handleFileChange}
+            disabled={uploading}
+          />
+        </label>
+      </div>
 
-          {uploading && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Uploading...</span>
-                <span>{progress}%</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-            </div>
-          )}
-
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-        </>
-      ) : (
-        <Alert className="bg-green-50 border-green-200">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertTitle className="text-green-800">Resume Uploaded</AlertTitle>
-          <AlertDescription className="text-green-700">
-            Your resume has been successfully uploaded and processed. Your profile has been updated with the extracted
-            information.
-          </AlertDescription>
-        </Alert>
+      {file && (
+        <div className="flex gap-2">
+          <Button
+            onClick={handleUpload}
+            className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-500 text-white"
+            disabled={uploading || uploadSuccess}
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
+              </>
+            ) : uploadSuccess ? (
+              <>
+                <Check className="mr-2 h-4 w-4" /> Uploaded
+              </>
+            ) : (
+              "Upload Resume"
+            )}
+          </Button>
+          <Button variant="outline" size="icon" onClick={handleRemoveFile} disabled={uploading}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       )}
+
+      {uploadSuccess && (
+        <Card className="p-3 bg-green-50 border-green-200">
+          <div className="flex items-center gap-2 text-green-700">
+            <Check className="h-5 w-5" />
+            <p className="text-sm">Resume processed successfully! Your profile has been updated.</p>
+          </div>
+        </Card>
+      )}
+
+      <div className="text-xs text-muted-foreground mt-2">
+        <p>
+          Uploading your resume will automatically extract your skills, experience, and qualifications to enhance your
+          job matching.
+        </p>
+      </div>
     </div>
   )
 }
