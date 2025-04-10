@@ -1,0 +1,11 @@
+flask
+flask-cors
+werkzeug
+langchain
+langchain-groq
+sentence-transformers
+PyMuPDF
+numpy
+torch
+transformers
+pandas
