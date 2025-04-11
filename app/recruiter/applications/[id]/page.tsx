@@ -28,11 +28,11 @@ export default function CandidateProfile() {
       try {
         setLoading(true)
 
-        // Fetch candidate data
+        
         const candidateResponse = await getCandidate(candidateId)
         setCandidate(candidateResponse.candidate)
 
-        // Fetch candidate matches
+        
         const matchesResponse = await getCandidateMatches(candidateId)
         setMatches(matchesResponse.matches || [])
       } catch (error) {

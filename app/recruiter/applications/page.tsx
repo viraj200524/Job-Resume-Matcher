@@ -25,11 +25,11 @@ export default function RecruiterApplications() {
     const fetchApplications = async () => {
       try {
         setLoading(true)
-        // In a real app, you would fetch applications from the API
-        // For now, we'll simulate applications based on candidates
+        
+        
         const response = await getCandidates()
 
-        // Generate random applications from candidates
+        
         const statuses = ["Pending", "Reviewing", "Interview", "Rejected", "Offered"]
         const jobTitles = [
           "Senior Frontend Developer",
@@ -47,14 +47,14 @@ export default function RecruiterApplications() {
         ]
 
         const applications = response.candidates.map((candidate) => {
-          // Generate a random date in the past 30 days
+          
           const date = new Date()
           date.setDate(date.getDate() - Math.floor(Math.random() * 30))
 
-          // Generate random status
+          
           const status = statuses[Math.floor(Math.random() * statuses.length)]
 
-          // Generate random interview date if status is "Interview"
+          
           let interviewDate = null
           let interviewTime = null
           if (status === "Interview") {
@@ -73,7 +73,7 @@ export default function RecruiterApplications() {
             company: companies[Math.floor(Math.random() * companies.length)],
             applied_date: date.toISOString().split("T")[0],
             status,
-            match_score: Math.floor(Math.random() * 20) + 75, // Random score between 75-95
+            match_score: Math.floor(Math.random() * 20) + 75, 
             interview_date: interviewDate ? interviewDate.toISOString().split("T")[0] : null,
             interview_time: interviewTime,
           }
@@ -93,7 +93,7 @@ export default function RecruiterApplications() {
     }
   }, [user])
 
-  // Helper function to get initials from name
+  
   const getInitials = (name: string) => {
     if (!name) return "?"
     return name
@@ -104,7 +104,7 @@ export default function RecruiterApplications() {
       .slice(0, 2)
   }
 
-  // Filter applications based on search term and active tab
+  
   const filteredApplications = applications.filter((application) => {
     const matchesSearch =
       application.candidate_name.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -242,14 +242,11 @@ export async function getCandidateApplicationsByEmail(email: string): Promise<{ 
 
 export async function getCandidateMatchesByEmail(email: string): Promise<{ matches: Score[] }> {
   try {
-    // First get the candidate by email
     const candidateResponse = await getCandidateByEmail(email)
 
     if (!candidateResponse.candidate) {
       throw new Error("Candidate not found")
     }
-
-    // Then get matches for that candidate
     const matchesResponse = await getCandidateMatches(candidateResponse.candidate.candidate_id)
     return matchesResponse
   } catch (error) {
@@ -257,8 +254,6 @@ export async function getCandidateMatchesByEmail(email: string): Promise<{ match
     throw error
   }
 }
-
-// Interview API functions
 export async function createInterview(interviewData: Partial<Interview>): Promise<{ interview_id: number }> {
   const response = await fetch(`${API_BASE_URL}/interviews`, {
     method: "POST",

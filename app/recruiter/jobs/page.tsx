@@ -26,24 +26,24 @@ export default function RecruiterJobs() {
         setLoading(true)
         const response = await getJobs()
 
-        // Transform jobs and add additional properties
+        
         const transformedJobs = response.jobs.map((job) => {
-          // Generate random dates
+          
           const postedDate = new Date()
           postedDate.setDate(postedDate.getDate() - Math.floor(Math.random() * 30))
 
           const expiresDate = new Date(postedDate)
           expiresDate.setDate(postedDate.getDate() + 30)
 
-          // Generate random status
+          
           const statuses = ["Active", "Expired", "Draft"]
           const status = statuses[Math.floor(Math.random() * statuses.length)]
 
-          // Generate random applicants and interviews count
+          
           const applicants = Math.floor(Math.random() * 20)
           const interviews = Math.floor(Math.random() * applicants)
 
-          // Parse required skills
+          
           const requiredSkills = (job.required_skills || "React, TypeScript, JavaScript, CSS, HTML")
             .split(",")
             .map((s: string) => s.trim())
@@ -75,7 +75,7 @@ export default function RecruiterJobs() {
     }
   }, [user])
 
-  // Filter jobs based on search term and active tab
+  
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
       job.job_title.toLowerCase().includes(searchTerm.toLowerCase()) ||

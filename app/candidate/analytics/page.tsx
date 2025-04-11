@@ -54,7 +54,7 @@ export default function CandidateAnalytics() {
       try {
         setLoading(true)
 
-        // Fetch candidate details by email
+        
         let candidateResponse
         try {
           candidateResponse = await getCandidateByEmail(user.email)
@@ -73,19 +73,19 @@ export default function CandidateAnalytics() {
 
         const candidateId = candidateResponse.candidate.candidate_id
 
-        // Fetch matches
+        
         const matchesResponse = await getCandidateMatches(candidateId)
 
-        // Fetch applications
+        
         const applicationsResponse = await getCandidateApplications(candidateId)
 
-        // Calculate profile completion
+        
         const candidate = candidateResponse.candidate
         const totalFields = Object.keys(candidate).length
         const filledFields = Object.values(candidate).filter((value) => value && value !== "None").length
         const profileStrength = Math.round((filledFields / totalFields) * 100)
 
-        // Count applications by status
+        
         const applications = applicationsResponse.applications
         const pending = applications.filter((app) => app.status === "Pending").length
         const reviewing = applications.filter((app) => app.status === "Reviewing").length
@@ -93,7 +93,7 @@ export default function CandidateAnalytics() {
         const rejected = applications.filter((app) => app.status === "Rejected").length
         const offered = applications.filter((app) => app.status === "Offered").length
 
-        // Extract skills for radar chart
+        
         const candidateSkills = (candidate.skills || "")
           .split(",")
           .map((s) => s.trim())
@@ -102,14 +102,14 @@ export default function CandidateAnalytics() {
           .flatMap((match) => (match.required_skills || "").split(",").map((s) => s.trim()))
           .filter(Boolean)
 
-        // Get unique skills
+        
         const uniqueSkills = Array.from(new Set([...candidateSkills, ...jobSkills])).slice(0, 8)
 
-        // Generate random scores for skills (in a real app, this would be calculated)
+        
         const candidateSkillScores = uniqueSkills.map(() => Math.floor(Math.random() * 40) + 60)
         const jobSkillScores = uniqueSkills.map(() => Math.floor(Math.random() * 40) + 60)
 
-        // Calculate match score distribution
+        
         const matchScores = matchesResponse.matches.map((match) => match.eligibility_score)
         const scoreRanges = {
           "90-100%": matchScores.filter((score) => score >= 90).length,
@@ -119,11 +119,11 @@ export default function CandidateAnalytics() {
           "Below 60%": matchScores.filter((score) => score < 60).length,
         }
 
-        // Generate applications over time (in a real app, this would use actual dates)
+        
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
         const applicationsOverTime = months.map(() => Math.floor(Math.random() * 5))
 
-        // Calculate skill gaps
+        
         const skillGaps = [
           { skill: "AWS", gap: 30 },
           { skill: "Docker", gap: 25 },

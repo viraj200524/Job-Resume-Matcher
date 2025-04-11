@@ -49,8 +49,8 @@ export default function CandidateSettings() {
     e.preventDefault()
     setSaving(true)
 
-    // In a real app, you would implement an API call to update the settings
-    // For now, we'll just simulate a successful update
+    
+    
     setTimeout(() => {
       setSaving(false)
       toast({

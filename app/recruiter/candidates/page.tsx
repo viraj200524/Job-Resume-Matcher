@@ -28,7 +28,7 @@ export default function RecruiterCandidates() {
         setLoading(true)
         const response = await getCandidates()
 
-        // Transform candidates and add additional properties
+        
         const jobTitles = [
           "Senior Frontend Developer",
           "React Developer",
@@ -40,14 +40,14 @@ export default function RecruiterCandidates() {
         const statuses = ["Applied", "Reviewing", "Interview", "Rejected", "Offered"]
 
         const transformedCandidates = response.candidates.map((candidate) => {
-          // Generate random match score between 75-95
+          
           const matchScore = Math.floor(Math.random() * 20) + 75
 
           return {
             ...candidate,
             initials: getInitials(candidate.name),
             email: candidate.email || `${candidate.name.toLowerCase().replace(/\s+/g, ".")}@example.com`,
-            location: "San Francisco, CA", // This would come from the API in a real app
+            location: "San Francisco, CA", 
             skills: (candidate.skills || "React, JavaScript, TypeScript, CSS").split(",").map((s: string) => s.trim()),
             experience: candidate.experience || "5 years",
             match_score: matchScore,
@@ -71,7 +71,7 @@ export default function RecruiterCandidates() {
     }
   }, [user])
 
-  // Helper function to get initials from name
+  
   const getInitials = (name: string) => {
     if (!name) return "?"
     return name
@@ -90,7 +90,7 @@ export default function RecruiterCandidates() {
     }
   }
 
-  // Filter candidates based on search term and active tab
+  
   const filteredCandidates = candidates.filter((candidate) => {
     const matchesSearch =
       candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

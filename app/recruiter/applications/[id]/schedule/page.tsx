@@ -49,19 +49,19 @@ export default function ScheduleInterview() {
     setSubmitting(true)
 
     try {
-      // In a real app, you would make an API call to schedule the interview
-      // const response = await createInterview({
-      //   application_id: applicationId,
-      //   date: date.toISOString().split('T')[0],
-      //   time,
-      //   duration,
-      //   type: interviewType as "video" | "in-person" | "phone",
-      //   status: "scheduled",
-      //   location: interviewType === "in-person" ? location : undefined,
-      //   notes: details,
-      // })
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
 
-      // Simulate API call
+      
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       toast({
@@ -69,7 +69,7 @@ export default function ScheduleInterview() {
         description: "The candidate has been notified of the interview details.",
       })
 
-      // Redirect to the applications page
+      
       router.push("/recruiter/applications")
     } catch (error) {
       console.error("Error scheduling interview:", error)

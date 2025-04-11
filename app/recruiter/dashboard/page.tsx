@@ -35,20 +35,20 @@ export default function RecruiterDashboard() {
       try {
         setLoading(true)
 
-        // Fetch jobs
+        
         const jobsResponse = await getJobs()
         const jobs = jobsResponse.jobs || []
 
-        // Fetch candidates
+        
         const candidatesResponse = await getCandidates()
         const candidates = candidatesResponse.candidates || []
 
-        // For demo purposes, we'll simulate application data
-        // In a real app, you would fetch this from an API
-        const applications = Math.min(candidates.length * 2, 20) // Simulate some applications
-        const interviews = Math.floor(applications * 0.4) // About 40% of applications get interviews
+        
+        
+        const applications = Math.min(candidates.length * 2, 20) 
+        const interviews = Math.floor(applications * 0.4) 
 
-        // Simulate application stats
+        
         const pending = Math.floor(applications * 0.3)
         const reviewed = Math.floor(applications * 0.25)
         const interviewed = Math.floor(applications * 0.2)
