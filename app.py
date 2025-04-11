@@ -9,17 +9,21 @@ from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
 from langchain_core.messages import HumanMessage
 import pandas as pd
+from dotenv import load_dotenv
 
 app = Flask(__name__)
 CORS(app)
 
+load_dotenv(".env.local")
 
 DB_PATH = "job_matching.db"
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf', 'csv'}
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    raise ValueError("GROQ_API_KEY not found in environment variables.")
 
-
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
@@ -1219,4 +1223,5 @@ def get_recruiter_interviews(recruiter_id):
     return jsonify({"interviews": interviews})
 
 if __name__ == '__main__':
-    app.run(debug=True, port = 5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)

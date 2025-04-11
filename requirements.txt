@@ -9,3 +9,5 @@ numpy
 torch
 transformers
 pandas
+python-dotenv
+gunicorn
