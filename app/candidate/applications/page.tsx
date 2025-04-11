@@ -7,23 +7,45 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calendar, Clock, Building, MapPin, FileText, Eye, Sparkles } from "lucide-react"
 import Link from "next/link"
-import { getCandidateApplications } from "@/lib/api"
+import { getCandidateApplications, getCandidateByEmail } from "@/lib/api"
 import type { Application } from "@/lib/api"
+// import { useUser } from "@clerk/nextjs"
+import { useAuth } from "@/lib/auth"
 
 export default function CandidateApplications() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [applications, setApplications] = useState<Application[]>([])
   const [activeTab, setActiveTab] = useState("all")
-
+  // const { user } = useUser()
+  const { user } = useAuth()
+  
   useEffect(() => {
     const fetchApplications = async () => {
+      if (!user?.email) return
+
       try {
         setLoading(true)
-        // For demo purposes, we'll use candidate ID 1
-        const candidateId = 10
-        const response = await getCandidateApplications(candidateId)
-        setApplications(response.applications)
+
+        // Get candidate ID from email
+        try {
+          const candidateResponse = await getCandidateByEmail(user.email)
+
+          if (!candidateResponse.candidate) {
+            setError("Candidate profile not found. Please complete your profile first.")
+            setLoading(false)
+            return
+          }
+
+          // Fetch applications for this candidate
+          const response = await getCandidateApplications(candidateResponse.candidate.candidate_id)
+          setApplications(response.applications)
+        } catch (error) {
+          console.error("Error fetching applications:", error)
+          setError("Failed to load applications. Please try again later.")
+        } finally {
+          setLoading(false)
+        }
       } catch (error) {
         console.error("Error fetching applications:", error)
         setError("Failed to load applications. Please try again later.")
@@ -32,8 +54,10 @@ export default function CandidateApplications() {
       }
     }
 
-    fetchApplications()
-  }, [])
+    if (user) {
+      fetchApplications()
+    }
+  }, [user])
 
   // Filter applications based on active tab
   const filteredApplications = applications.filter((application) => {

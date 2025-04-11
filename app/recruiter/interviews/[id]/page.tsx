@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Calendar, Clock, User, MapPin, Video, Mail, AlertCircle } from "lucide-react"
-import { createVideoRoom } from "@/lib/daily"
-import { sendEmail, generateInterviewInvitationEmail } from "@/lib/email"
+import { createVideoRoom } from "@/lib/jitsi"
+// import { sendEmail, generateInterviewInvitationEmail } from "@/lib/email"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/lib/auth"
 import { AuthCheck } from "@/components/auth-check"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { getInterview } from "@/lib/api"
 
 export default function RecruiterInterviewPage({ params }: { params: { id: string } }) {
   const { user } = useAuth()
@@ -20,22 +21,33 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
   const [roomUrl, setRoomUrl] = useState<string | null>(null)
   const [sendingEmail, setSendingEmail] = useState(false)
   const [joining, setJoining] = useState(false)
+  const [interviewData, setInterviewData] = useState<any>(null)
   const { toast } = useToast()
 
-  // This would normally be fetched from the API
-  const interviewData = {
-    id: Number.parseInt(params.id),
-    candidate_name: "John Doe",
-    candidate_email: "john.doe@example.com",
-    job_title: "Senior Frontend Developer",
-    company: "Tech Solutions Inc.",
-    location: "Remote",
-    date: "2023-04-20",
-    time: "10:00 AM",
-    duration: "45 minutes",
-    status: "Scheduled",
-    notes: "Focus on React experience and system design skills. Ask about previous projects and team collaboration.",
-  }
+  useEffect(() => {
+    const fetchInterviewData = async () => {
+      try {
+        setLoading(true)
+
+        const response = await getInterview(Number(params.id))
+        
+        if (response) {
+          setInterviewData(response.interview)
+        } else {
+          setError("Interview not found")
+        }
+      } catch (err) {
+        console.error("Failed to fetch interview data:", err)
+        setError("Failed to load interview details. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (user) {
+      fetchInterviewData()
+    }
+  }, [params.id, user])
 
   const initializeRoom = async () => {
     try {
@@ -43,13 +55,11 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
       // In a real app, you would check if a room already exists for this interview
       // and only create a new one if needed
       const room = await createVideoRoom({
-        name: `interview-${interviewData.id}`,
-        expiresInMinutes: 60,
-        properties: {
-          start_audio_off: false,
-          start_video_off: false,
-          enable_chat: true,
-          enable_screenshare: true,
+        roomName: `interview-${interviewData.interview_id}`,
+        config: {
+          startWithAudioMuted: false,
+          startWithVideoMuted: false,
+          enableClosePage: true,
         },
       })
 
@@ -61,15 +71,6 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
       setJoining(false)
     }
   }
-
-  useEffect(() => {
-    // Simulate loading interview data
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [])
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = {
@@ -87,21 +88,21 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
     setSendingEmail(true)
     try {
       // In a real app, this would be a server action or API call
-      const emailHtml = generateInterviewInvitationEmail(
-        interviewData.candidate_name,
-        interviewData.job_title,
-        interviewData.company,
-        formatDate(interviewData.date),
-        interviewData.time,
-        roomUrl,
-      )
+      // const emailHtml = generateInterviewInvitationEmail(
+      //   interviewData.candidate_name,
+      //   interviewData.job_title,
+      //   interviewData.company,
+      //   formatDate(interviewData.date),
+      //   interviewData.time,
+      //   roomUrl,
+      // )
 
       // This would be handled server-side in a real app
-      await sendEmail({
-        to: interviewData.candidate_email,
-        subject: `Interview Invitation: ${interviewData.job_title} at ${interviewData.company}`,
-        html: emailHtml,
-      })
+      // await sendEmail({
+      //   to: "candidate@example.com", // In a real app, this would be interviewData.candidate_email
+      //   subject: `Interview Invitation: ${interviewData.job_title} at ${interviewData.company}`,
+      //   html: emailHtml,
+      // })
 
       toast({
         title: "Invitation sent",
@@ -131,6 +132,33 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
     )
   }
 
+  if (error || !interviewData) {
+    return (
+      <AuthCheck requiredRole="recruiter">
+        <div className="container mx-auto p-6">
+          <Card className="border-0 shadow-md rounded-xl overflow-hidden">
+            <CardHeader>
+              <CardTitle>Error</CardTitle>
+              <CardDescription>There was a problem loading the interview details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>{error || "Interview not found"}</AlertDescription>
+              </Alert>
+              <Button onClick={() => window.location.reload()} className="mr-2">
+                Try Again
+              </Button>
+              <Button variant="outline" onClick={() => window.history.back()}>
+                Go Back
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </AuthCheck>
+    )
+  }
+
   return (
     <AuthCheck requiredRole="recruiter">
       <div className="container mx-auto p-6 bg-grid">
@@ -141,8 +169,17 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
               {interviewData.job_title} with {interviewData.candidate_name}
             </p>
           </div>
-          <Badge variant="outline" className="mt-2 md:mt-0 bg-green-100 text-green-800 hover:bg-green-100">
-            {interviewData.status}
+          <Badge
+            variant="outline"
+            className={`mt-2 md:mt-0 ${
+              interviewData.status.toLowerCase() === "scheduled"
+                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                : interviewData.status.toLowerCase() === "completed"
+                  ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                  : "bg-red-100 text-red-800 hover:bg-red-100"
+            }`}
+          >
+            {interviewData.status.charAt(0).toUpperCase() + interviewData.status.slice(1)}
           </Badge>
         </div>
 
@@ -176,7 +213,7 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
                   <div>
                     <h3 className="font-medium">Candidate</h3>
                     <p className="text-sm text-muted-foreground">{interviewData.candidate_name}</p>
-                    <p className="text-sm text-muted-foreground">{interviewData.candidate_email}</p>
+                    <p className="text-sm text-muted-foreground">{"candidate@example.com"}</p>
                   </div>
                 </div>
 
@@ -184,7 +221,9 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
                   <MapPin className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h3 className="font-medium">Location</h3>
-                    <p className="text-sm text-muted-foreground">{interviewData.location}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {interviewData.location || "Remote (Video Interview)"}
+                    </p>
                   </div>
                 </div>
 
@@ -192,12 +231,17 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
 
                 <div>
                   <h3 className="font-medium mb-1">Interview Notes</h3>
-                  <p className="text-sm">{interviewData.notes}</p>
+                  <p className="text-sm">{interviewData.notes || "No additional notes for this interview."}</p>
                 </div>
 
                 <Button
                   onClick={handleSendInvitation}
-                  disabled={!roomUrl || sendingEmail}
+                  disabled={
+                    !roomUrl ||
+                    sendingEmail ||
+                    interviewData.type.toLowerCase() !== "video" ||
+                    interviewData.status.toLowerCase() !== "scheduled"
+                  }
                   className="w-full gap-2 bg-gradient-bg text-white border-0 shadow-md hover:shadow-lg transition-all"
                 >
                   <Mail className="h-4 w-4" />
@@ -227,7 +271,7 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
                     <iframe
                       title="Video Conference"
                       src={roomUrl}
-                      allow="camera; microphone; fullscreen; speaker; display-capture"
+                      allow="camera; microphone; fullscreen; speaker; display-capture; autoplay"
                       style={{ width: "100%", height: "100%", border: "none", borderRadius: "0.5rem" }}
                     ></iframe>
                   </div>
@@ -240,7 +284,11 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
                     </p>
                     <Button
                       onClick={initializeRoom}
-                      disabled={joining}
+                      disabled={
+                        joining ||
+                        interviewData.type.toLowerCase() !== "video" ||
+                        interviewData.status.toLowerCase() !== "scheduled"
+                      }
                       className="bg-gradient-bg text-white border-0 shadow-md hover:shadow-lg transition-all"
                     >
                       {joining ? "Connecting..." : "Start Interview"}

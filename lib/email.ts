@@ -47,6 +47,7 @@ export function generateApplicationConfirmationEmail(candidateName: string, jobT
   `
 }
 
+// Update the interview invitation email generation to use Jitsi Meet URL
 export function generateInterviewInvitationEmail(
   candidateName: string,
   jobTitle: string,
@@ -64,6 +65,7 @@ export function generateInterviewInvitationEmail(
       <p><strong>Time:</strong> ${interviewTime}</p>
       <p>The interview will be conducted via video conference. Please click the link below at the scheduled time:</p>
       <p><a href="${videoLink}" style="display: inline-block; background-color: #4f46e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Join Interview</a></p>
+      <p>You don't need to install any additional software. The video conference will open in your browser.</p>
       <p>If you have any questions or need to reschedule, please contact us.</p>
       <p>Best regards,<br>The TalentMatch Team</p>
     </div>

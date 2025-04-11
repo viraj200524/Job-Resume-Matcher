@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Calendar, Clock, Building, MapPin, Video, AlertCircle } from "lucide-react"
-import { createVideoRoom } from "@/lib/daily"
+import { createVideoRoom } from "@/lib/jitsi"
 import { useAuth } from "@/lib/auth"
 import { AuthCheck } from "@/components/auth-check"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { getInterview,  } from "@/lib/api"
 
 export default function InterviewPage({ params }: { params: { id: string } }) {
   const { user } = useAuth()
@@ -17,22 +18,33 @@ export default function InterviewPage({ params }: { params: { id: string } }) {
   const [error, setError] = useState<string | null>(null)
   const [roomUrl, setRoomUrl] = useState<string | null>(null)
   const [joining, setJoining] = useState(false)
+  const [interviewData, setInterviewData] = useState<any>(null)
 
-  // This would normally be fetched from the API
-  const interviewData = {
-    id: Number.parseInt(params.id),
-    job_title: "Senior Frontend Developer",
-    company: "Tech Solutions Inc.",
-    location: "Remote",
-    date: "2023-04-20",
-    time: "10:00 AM",
-    duration: "45 minutes",
-    status: "Scheduled",
-    interviewer: "Sarah Johnson",
-    interviewer_title: "Engineering Manager",
-    description:
-      "This interview will focus on your technical skills and experience with React, TypeScript, and modern web development practices. Please be prepared to discuss your past projects and potentially solve some coding problems.",
-  }
+  useEffect(() => {
+    const fetchInterviewData = async () => {
+      try {
+        setLoading(true)
+
+        const response = await getInterview(Number(params.id))
+        
+        if (response) {
+          setInterviewData(response.interview)
+          // setInterviewData(interview)
+        } else {
+          setError("Interview not found")
+        }
+      } catch (err) {
+        console.error("Failed to fetch interview data:", err)
+        setError("Failed to load interview details. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (user) {
+      fetchInterviewData()
+    }
+  }, [params.id, user])
 
   const initializeRoom = async () => {
     try {
@@ -40,13 +52,11 @@ export default function InterviewPage({ params }: { params: { id: string } }) {
       // In a real app, you would check if a room already exists for this interview
       // and only create a new one if needed
       const room = await createVideoRoom({
-        name: `interview-${interviewData.id}`,
-        expiresInMinutes: 60,
-        properties: {
-          start_audio_off: false,
-          start_video_off: false,
-          enable_chat: true,
-          enable_screenshare: true,
+        roomName: `interview-${interviewData.interview_id}`,
+        config: {
+          startWithAudioMuted: false,
+          startWithVideoMuted: false,
+          enableClosePage: true,
         },
       })
 
@@ -58,15 +68,6 @@ export default function InterviewPage({ params }: { params: { id: string } }) {
       setJoining(false)
     }
   }
-
-  useEffect(() => {
-    // Simulate loading interview data
-    const timer = setTimeout(() => {
-      setLoading(false)
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [])
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = {
@@ -90,6 +91,33 @@ export default function InterviewPage({ params }: { params: { id: string } }) {
     )
   }
 
+  if (error || !interviewData) {
+    return (
+      <AuthCheck requiredRole="candidate">
+        <div className="container mx-auto p-6">
+          <Card className="border-0 shadow-md rounded-xl overflow-hidden">
+            <CardHeader>
+              <CardTitle>Error</CardTitle>
+              <CardDescription>There was a problem loading the interview details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>{error || "Interview not found"}</AlertDescription>
+              </Alert>
+              <Button onClick={() => window.location.reload()} className="mr-2">
+                Try Again
+              </Button>
+              <Button variant="outline" onClick={() => window.history.back()}>
+                Go Back
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </AuthCheck>
+    )
+  }
+
   return (
     <AuthCheck requiredRole="candidate">
       <div className="container mx-auto p-6 bg-grid">
@@ -100,8 +128,17 @@ export default function InterviewPage({ params }: { params: { id: string } }) {
               {interviewData.job_title} at {interviewData.company}
             </p>
           </div>
-          <Badge variant="outline" className="mt-2 md:mt-0 bg-green-100 text-green-800 hover:bg-green-100">
-            {interviewData.status}
+          <Badge
+            variant="outline"
+            className={`mt-2 md:mt-0 ${
+              interviewData.status.toLowerCase() === "scheduled"
+                ? "bg-green-100 text-green-800 hover:bg-green-100"
+                : interviewData.status.toLowerCase() === "completed"
+                  ? "bg-blue-100 text-blue-800 hover:bg-blue-100"
+                  : "bg-red-100 text-red-800 hover:bg-red-100"
+            }`}
+          >
+            {interviewData.status.charAt(0).toUpperCase() + interviewData.status.slice(1)}
           </Badge>
         </div>
 
@@ -142,7 +179,9 @@ export default function InterviewPage({ params }: { params: { id: string } }) {
                   <MapPin className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <h3 className="font-medium">Location</h3>
-                    <p className="text-sm text-muted-foreground">{interviewData.location}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {interviewData.location || "Remote (Video Interview)"}
+                    </p>
                   </div>
                 </div>
 
@@ -150,8 +189,8 @@ export default function InterviewPage({ params }: { params: { id: string } }) {
 
                 <div>
                   <h3 className="font-medium mb-1">Interviewer</h3>
-                  <p className="text-sm">{interviewData.interviewer}</p>
-                  <p className="text-sm text-muted-foreground">{interviewData.interviewer_title}</p>
+                  <p className="text-sm">{interviewData.recruiter_name || "Hiring Manager"}</p>
+                  <p className="text-sm text-muted-foreground">{"Recruiter"}</p>
                 </div>
               </CardContent>
             </Card>
@@ -161,7 +200,7 @@ export default function InterviewPage({ params }: { params: { id: string } }) {
                 <CardTitle>Interview Description</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm">{interviewData.description}</p>
+                <p className="text-sm">{interviewData.notes || "No additional details provided for this interview."}</p>
               </CardContent>
             </Card>
           </div>
@@ -186,7 +225,7 @@ export default function InterviewPage({ params }: { params: { id: string } }) {
                     <iframe
                       title="Video Conference"
                       src={roomUrl}
-                      allow="camera; microphone; fullscreen; speaker; display-capture"
+                      allow="camera; microphone; fullscreen; speaker; display-capture; autoplay"
                       style={{ width: "100%", height: "100%", border: "none", borderRadius: "0.5rem" }}
                     ></iframe>
                   </div>
@@ -199,7 +238,11 @@ export default function InterviewPage({ params }: { params: { id: string } }) {
                     </p>
                     <Button
                       onClick={initializeRoom}
-                      disabled={joining}
+                      disabled={
+                        joining ||
+                        interviewData.type.toLowerCase() !== "video" ||
+                        interviewData.status.toLowerCase() !== "scheduled"
+                      }
                       className="bg-gradient-bg text-white border-0 shadow-md hover:shadow-lg transition-all"
                     >
                       {joining ? "Connecting..." : "Join Interview"}

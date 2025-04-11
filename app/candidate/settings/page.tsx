@@ -10,36 +10,40 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
-import { getCandidate } from "@/lib/api"
+import { getCandidateByEmail } from "@/lib/api"
 import type { Candidate } from "@/lib/api"
 import { Sparkles } from "lucide-react"
+import { useAuth } from "@/lib/auth"
 import { useToast } from "@/hooks/use-toast"
 
 export default function CandidateSettings() {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [candidate, setCandidate] = useState<Candidate | null>(null)
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
 
-  useEffect(() => {
-    const fetchCandidate = async () => {
-      try {
-        setLoading(true)
-        // For demo purposes, we'll use candidate ID 1
-        const candidateId = 10
-        const response = await getCandidate(candidateId)
-        setCandidate(response.candidate)
-      } catch (error) {
-        console.error("Error fetching candidate:", error)
-        setError("Failed to load settings data. Please try again later.")
-      } finally {
-        setLoading(false)
+    useEffect(() => {
+      const fetchCandidate = async () => {
+        if (!user?.email) return
+  
+        try {
+          setLoading(true)
+          const response = await getCandidateByEmail(user.email)
+          setCandidate(response.candidate)
+        } catch (error) {
+          console.error("Error fetching candidate:", error)
+          setError("Failed to load profile data. Please try again later.")
+        } finally {
+          setLoading(false)
+        }
       }
-    }
-
-    fetchCandidate()
-  }, [])
+  
+      if (user) {
+        fetchCandidate()
+      }
+    }, [user])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

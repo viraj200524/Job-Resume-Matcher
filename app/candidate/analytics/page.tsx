@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { Sparkles } from "lucide-react"
+import { Sparkles, Loader2 } from "lucide-react"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,7 +20,11 @@ import {
   Filler,
 } from "chart.js"
 import { Bar, Doughnut, Radar } from "react-chartjs-2"
-import { getCandidateApplications, getCandidateMatches, getCandidate } from "@/lib/api"
+import { getCandidateApplications, getCandidateMatches, getCandidateByEmail } from "@/lib/api"
+import { useAuth } from "@/lib/auth"
+import { AuthCheck } from "@/components/auth-check"
+import { Button } from "@/components/ui/button"
+import { ResumeUploader } from "@/components/candidate/resume-uploader"
 
 ChartJS.register(
   CategoryScale,
@@ -37,19 +41,37 @@ ChartJS.register(
 )
 
 export default function CandidateAnalytics() {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [analyticsData, setAnalyticsData] = useState<any>(null)
+  const [needsResume, setNeedsResume] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!user || !user.email) return
+
       try {
         setLoading(true)
-        // For demo purposes, we'll use candidate ID 1
-        const candidateId = 10
 
-        // Fetch candidate details
-        const candidateResponse = await getCandidate(candidateId)
+        // Fetch candidate details by email
+        let candidateResponse
+        try {
+          candidateResponse = await getCandidateByEmail(user.email)
+
+          if (!candidateResponse.candidate) {
+            setNeedsResume(true)
+            setLoading(false)
+            return
+          }
+        } catch (error) {
+          console.error("Error fetching candidate by email:", error)
+          setNeedsResume(true)
+          setLoading(false)
+          return
+        }
+
+        const candidateId = candidateResponse.candidate.candidate_id
 
         // Fetch matches
         const matchesResponse = await getCandidateMatches(candidateId)
@@ -183,8 +205,10 @@ export default function CandidateAnalytics() {
       }
     }
 
-    fetchData()
-  }, [])
+    if (user) {
+      fetchData()
+    }
+  }, [user])
 
   const applicationStatusOptions = {
     responsive: true,
@@ -225,12 +249,49 @@ export default function CandidateAnalytics() {
     },
   }
 
+  if (!user) {
+    return <AuthCheck requiredRole="candidate" />
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Loading analytics data...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (needsResume) {
+    return (
+      <div className="container mx-auto p-6 bg-grid">
+        <div className="max-w-2xl mx-auto">
+          <Card className="border-0 shadow-md rounded-xl overflow-hidden gradient-border">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Sparkles className="h-5 w-5 mr-2 text-primary" />
+                Complete Your Profile
+              </CardTitle>
+              <CardDescription>Please upload your resume to access analytics</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <p className="text-sm text-muted-foreground">
+                To provide you with personalized analytics, we need to analyze your resume. Please upload your resume to
+                continue.
+              </p>
+              <ResumeUploader />
+              <div className="text-center mt-4">
+                <p className="text-xs text-muted-foreground">
+                  After uploading your resume, refresh the page to see your analytics.
+                </p>
+                <Button onClick={() => window.location.reload()} variant="outline" className="mt-2">
+                  Refresh Page
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )

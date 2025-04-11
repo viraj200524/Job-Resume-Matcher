@@ -90,7 +90,30 @@ def init_db():
         FOREIGN KEY (job_id) REFERENCES jobs(job_id)
     );
     """)
-    
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS interviews (
+        interview_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        application_id INTEGER,
+        candidate_id INTEGER NOT NULL,
+        job_id INTEGER NOT NULL,
+        recruiter_id INTEGER,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        duration TEXT NOT NULL,
+        type TEXT NOT NULL CHECK (type IN ('video', 'in-person', 'phone')),
+        status TEXT NOT NULL CHECK (status IN ('scheduled', 'completed', 'cancelled')),
+        location TEXT,
+        meeting_url TEXT,
+        notes TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (application_id) REFERENCES applications(application_id),
+        FOREIGN KEY (candidate_id) REFERENCES candidates(candidate_id),
+        FOREIGN KEY (job_id) REFERENCES jobs(job_id)
+    );
+    """)
+
     conn.commit()
     conn.close()
 
@@ -984,6 +1007,216 @@ def get_candidate_by_email(email):
         return jsonify({"candidate": dict(candidate)})
     else:
         return jsonify({"error": "Candidate not found"}), 404
+
+# Interview API routes
+
+@app.route('/api/interviews', methods=['GET'])
+def get_interviews():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    query = """
+    SELECT i.*, c.name as candidate_name, j.job_title, j.company
+    FROM interviews i
+    JOIN candidates c ON i.candidate_id = c.candidate_id
+    JOIN jobs j ON i.job_id = j.job_id
+    ORDER BY i.date, i.time
+    """
+    
+    cursor.execute(query)
+    interviews = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    return jsonify({"interviews": interviews})
+
+@app.route('/api/interviews/<int:interview_id>', methods=['GET'])
+def get_interview(interview_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    query = """
+    SELECT i.*, c.name as candidate_name, j.job_title, j.company
+    FROM interviews i
+    JOIN candidates c ON i.candidate_id = c.candidate_id
+    JOIN jobs j ON i.job_id = j.job_id
+    WHERE i.interview_id = ?
+    """
+    
+    cursor.execute(query, (interview_id,))
+    interview = cursor.fetchone()
+    conn.close()
+    
+    if interview:
+        return jsonify({"interview": dict(interview)})
+    else:
+        return jsonify({"error": "Interview not found"}), 404
+
+@app.route('/api/interviews', methods=['POST'])
+def create_interview():
+    data = request.get_json()
+    required_fields = ['candidate_id', 'job_id', 'date', 'time', 'duration', 'type', 'status']
+    
+    for field in required_fields:
+        if field not in data:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Check if candidate and job exist
+    cursor.execute("SELECT candidate_id FROM candidates WHERE candidate_id = ?", (data['candidate_id'],))
+    candidate = cursor.fetchone()
+    
+    cursor.execute("SELECT job_id FROM jobs WHERE job_id = ?", (data['job_id'],))
+    job = cursor.fetchone()
+    
+    if not candidate or not job:
+        conn.close()
+        return jsonify({"error": "Candidate or job not found"}), 404
+    
+    # Check if application exists
+    application_id = None
+    cursor.execute(
+        "SELECT application_id FROM applications WHERE candidate_id = ? AND job_id = ?",
+        (data['candidate_id'], data['job_id'])
+    )
+    application = cursor.fetchone()
+    
+    if application:
+        application_id = application['application_id']
+    else:
+        # Create application if it doesn't exist
+        cursor.execute(
+            "INSERT INTO applications (candidate_id, job_id, application_date, status) VALUES (?, ?, date('now'), 'Interview Scheduled')",
+            (data['candidate_id'], data['job_id'])
+        )
+        application_id = cursor.lastrowid
+    
+    # Insert interview
+    query = """
+    INSERT INTO interviews (
+        application_id, candidate_id, job_id, recruiter_id,
+        date, time, duration, type, status,
+        location, meeting_url, notes,
+        created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+    """
+    
+    cursor.execute(query, (
+        application_id,
+        data['candidate_id'],
+        data['job_id'],
+        data.get('recruiter_id'),
+        data['date'],
+        data['time'],
+        data['duration'],
+        data['type'],
+        data['status'],
+        data.get('location'),
+        data.get('meeting_url'),
+        data.get('notes')
+    ))
+    
+    interview_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        "message": "Interview created successfully",
+        "interview_id": interview_id
+    })
+
+@app.route('/api/interviews/<int:interview_id>', methods=['PUT'])
+def update_interview(interview_id):
+    data = request.get_json()
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    # Check if interview exists
+    cursor.execute("SELECT * FROM interviews WHERE interview_id = ?", (interview_id,))
+    interview = cursor.fetchone()
+    
+    if not interview:
+        conn.close()
+        return jsonify({"error": "Interview not found"}), 404
+    
+    # Build update query dynamically based on provided fields
+    update_fields = []
+    params = []
+    
+    updateable_fields = [
+        'recruiter_id', 'date', 'time', 'duration', 'type',
+        'status', 'location', 'meeting_url', 'notes'
+    ]
+    
+    for field in updateable_fields:
+        if field in data:
+            update_fields.append(f"{field} = ?")
+            params.append(data[field])
+    
+    # Always add updated_at
+    update_fields.append("updated_at = datetime('now')")
+    
+    if not update_fields:
+        conn.close()
+        return jsonify({"error": "No fields to update"}), 400
+    
+    query = f"""
+    UPDATE interviews
+    SET {', '.join(update_fields)}
+    WHERE interview_id = ?
+    """
+    
+    params.append(interview_id)
+    cursor.execute(query, params)
+    
+    conn.commit()
+    conn.close()
+    
+    return jsonify({
+        "message": "Interview updated successfully",
+        "interview_id": interview_id
+    })
+
+@app.route('/api/interviews/candidate/<int:candidate_id>', methods=['GET'])
+def get_candidate_interviews(candidate_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    query = """
+    SELECT i.*, j.job_title, j.company
+    FROM interviews i
+    JOIN jobs j ON i.job_id = j.job_id
+    WHERE i.candidate_id = ?
+    ORDER BY i.date, i.time
+    """
+    
+    cursor.execute(query, (candidate_id,))
+    interviews = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    return jsonify({"interviews": interviews})
+
+@app.route('/api/interviews/recruiter/<int:recruiter_id>', methods=['GET'])
+def get_recruiter_interviews(recruiter_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    query = """
+    SELECT i.*, c.name as candidate_name, j.job_title, j.company
+    FROM interviews i
+    JOIN candidates c ON i.candidate_id = c.candidate_id
+    JOIN jobs j ON i.job_id = j.job_id
+    WHERE i.recruiter_id = ?
+    ORDER BY i.date, i.time
+    """
+    
+    cursor.execute(query, (recruiter_id,))
+    interviews = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    
+    return jsonify({"interviews": interviews})
 
 if __name__ == '__main__':
     app.run(debug=True, port = 5000)

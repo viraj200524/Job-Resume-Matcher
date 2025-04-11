@@ -53,6 +53,28 @@ export interface Application {
   location?: string
 }
 
+export interface Interview {
+  interview_id: number
+  application_id: number
+  candidate_id: number
+  job_id: number
+  recruiter_id?: number
+  date: string
+  time: string
+  duration: string
+  type: "video" | "in-person" | "phone"
+  status: "scheduled" | "completed" | "cancelled"
+  location?: string
+  meeting_url?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  candidate_name?: string
+  recruiter_name?: string
+  job_title?: string
+  company?: string
+}
+
 export interface ResumeUploadResponse {
   message: string
   candidate_id: number
@@ -196,6 +218,118 @@ export async function getCandidateApplications(candidateId: number): Promise<{ a
   const response = await fetch(`${API_BASE_URL}/applications/${candidateId}`)
   if (!response.ok) {
     throw new Error(`Failed to fetch candidate applications: ${response.statusText}`)
+  }
+  return response.json()
+}
+
+export async function getCandidateApplicationsByEmail(email: string): Promise<{ applications: Application[] }> {
+  try {
+    // First get the candidate by email
+    const candidateResponse = await getCandidateByEmail(email)
+
+    if (!candidateResponse.candidate) {
+      throw new Error("Candidate not found")
+    }
+
+    // Then get applications for that candidate
+    const applicationsResponse = await getCandidateApplications(candidateResponse.candidate.candidate_id)
+    return applicationsResponse
+  } catch (error) {
+    console.error("Error fetching candidate applications by email:", error)
+    throw error
+  }
+}
+
+export async function getCandidateMatchesByEmail(email: string): Promise<{ matches: Score[] }> {
+  try {
+    // First get the candidate by email
+    const candidateResponse = await getCandidateByEmail(email)
+
+    if (!candidateResponse.candidate) {
+      throw new Error("Candidate not found")
+    }
+
+    // Then get matches for that candidate
+    const matchesResponse = await getCandidateMatches(candidateResponse.candidate.candidate_id)
+    return matchesResponse
+  } catch (error) {
+    console.error("Error fetching candidate matches by email:", error)
+    throw error
+  }
+}
+
+// Interview API functions
+export async function createInterview(interviewData: Partial<Interview>): Promise<{ interview_id: number }> {
+  const response = await fetch(`${API_BASE_URL}/interviews`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(interviewData),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to create interview: ${response.statusText}`)
+  }
+
+  return response.json()
+}
+
+export async function getInterviews(): Promise<{ interviews: Interview[] }> {
+  const response = await fetch(`${API_BASE_URL}/interviews`)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch interviews: ${response.statusText}`)
+  }
+  return response.json()
+}
+
+export async function getInterview(id: number): Promise<{ interview: Interview }> {
+  const response = await fetch(`${API_BASE_URL}/interviews/${id}`)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch interview: ${response.statusText}`)
+  }
+  return response.json()
+}
+
+export async function updateInterview(
+  id: number,
+  interviewData: Partial<Interview>,
+): Promise<{ interview: Interview }> {
+  const response = await fetch(`${API_BASE_URL}/interviews/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(interviewData),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to update interview: ${response.statusText}`)
+  }
+
+  return response.json()
+}
+
+export async function getCandidateInterviews(candidateId: number): Promise<{ interviews: Interview[] }> {
+  const response = await fetch(`${API_BASE_URL}/interviews/candidate/${candidateId}`)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch candidate interviews: ${response.statusText}`)
+  }
+  return response.json()
+}
+
+export async function getRecruiterInterviews(recruiterId: number): Promise<{ interviews: Interview[] }> {
+  const response = await fetch(`${API_BASE_URL}/interviews/recruiter/${recruiterId}`)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch recruiter interviews: ${response.statusText}`)
+  }
+  return response.json()
+}
+
+export async function getJobApplicants(jobId: number): Promise<{ applications: Application[] }> {
+  const response = await fetch(`${API_BASE_URL}/jobs/${jobId}/applications`)
+  if (!response.ok) {
+    throw new Error(`Failed to fetch job applicants: ${response.statusText}`)
   }
   return response.json()
 }

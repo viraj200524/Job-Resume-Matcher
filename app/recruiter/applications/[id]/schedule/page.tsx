@@ -28,7 +28,9 @@ export default function ScheduleInterview() {
 
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [time, setTime] = useState<string>("")
+  const [duration, setDuration] = useState<string>("45 minutes")
   const [interviewType, setInterviewType] = useState<string>("video")
+  const [location, setLocation] = useState<string>("")
   const [details, setDetails] = useState<string>("")
   const [submitting, setSubmitting] = useState(false)
 
@@ -48,18 +50,29 @@ export default function ScheduleInterview() {
 
     try {
       // In a real app, you would make an API call to schedule the interview
-      // For demo purposes, we'll simulate a successful scheduling
+      // const response = await createInterview({
+      //   application_id: applicationId,
+      //   date: date.toISOString().split('T')[0],
+      //   time,
+      //   duration,
+      //   type: interviewType as "video" | "in-person" | "phone",
+      //   status: "scheduled",
+      //   location: interviewType === "in-person" ? location : undefined,
+      //   notes: details,
+      // })
 
-      setTimeout(() => {
-        toast({
-          title: "Interview scheduled",
-          description: "The candidate has been notified of the interview details.",
-        })
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-        // Redirect to the applications page
-        router.push("/recruiter/applications")
-      }, 1500)
+      toast({
+        title: "Interview scheduled",
+        description: "The candidate has been notified of the interview details.",
+      })
+
+      // Redirect to the applications page
+      router.push("/recruiter/applications")
     } catch (error) {
+      console.error("Error scheduling interview:", error)
       toast({
         title: "Failed to schedule interview",
         description: "There was an error scheduling the interview. Please try again.",
@@ -139,6 +152,16 @@ export default function ScheduleInterview() {
                   </div>
 
                   <div className="space-y-2">
+                    <Label htmlFor="duration">Duration</Label>
+                    <Input
+                      id="duration"
+                      placeholder="e.g., 45 minutes"
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
                     <Label>Interview Type</Label>
                     <RadioGroup
                       defaultValue="video"
@@ -168,6 +191,18 @@ export default function ScheduleInterview() {
                       </div>
                     </RadioGroup>
                   </div>
+
+                  {interviewType === "in-person" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Location</Label>
+                      <Input
+                        id="location"
+                        placeholder="Enter the interview location"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="details">Additional Details</Label>
