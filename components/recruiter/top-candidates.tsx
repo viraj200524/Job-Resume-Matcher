@@ -18,16 +18,14 @@ export function TopCandidates() {
         setLoading(true)
         const response = await getCandidates()
 
-        // Transform candidates and add match scores (in a real app, this would come from the API)
         const topCandidates = response.candidates.slice(0, 5).map((candidate) => ({
           id: candidate.candidate_id,
           name: candidate.name,
           initials: getInitials(candidate.name),
-          job_title: "Senior Frontend Developer", // This would come from the API in a real app
-          match_score: Math.floor(Math.random() * 20) + 80, // Random score between 80-100
+          job_title: "Senior Frontend Developer", 
+          match_score: Math.floor(Math.random() * 20) + 80,
         }))
 
-        // Sort by match score
         topCandidates.sort((a, b) => b.match_score - a.match_score)
 
         setCandidates(topCandidates)
@@ -42,7 +40,6 @@ export function TopCandidates() {
     fetchCandidates()
   }, [])
 
-  // Helper function to get initials from name
   const getInitials = (name: string) => {
     if (!name) return "?"
     return name

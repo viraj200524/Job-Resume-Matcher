@@ -47,8 +47,6 @@ export default function ScheduleInterview() {
     setSubmitting(true)
 
     try {
-      // In a real app, you would make an API call to schedule the interview
-      // For demo purposes, we'll simulate a successful scheduling
 
       setTimeout(() => {
         toast({
@@ -56,7 +54,6 @@ export default function ScheduleInterview() {
           description: "The candidate has been notified of the interview details.",
         })
 
-        // Redirect to the candidates page
         router.push("/recruiter/candidates")
       }, 1500)
     } catch (error) {

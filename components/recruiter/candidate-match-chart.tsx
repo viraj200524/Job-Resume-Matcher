@@ -18,18 +18,14 @@ export function RecruiterCandidateMatchChart() {
     const fetchCandidateMatches = async () => {
       try {
         setLoading(true)
-        // In a real app, you would fetch candidate matches from the API
-        // For now, we'll simulate matches based on candidates
         const response = await getCandidates()
 
-        // Generate random matches from candidates
         const jobTitles = ["Senior Frontend Developer", "React Developer", "Full Stack Engineer"]
 
         const candidateMatches = response.candidates.slice(0, 3).map((candidate) => {
-          // Generate random scores
-          const matchScore = Math.floor(Math.random() * 15) + 80 // 80-95
-          const skillScore = Math.floor(Math.random() * 15) + 80 // 80-95
-          const experienceScore = Math.floor(Math.random() * 20) + 75 // 75-95
+          const matchScore = Math.floor(Math.random() * 15) + 80 
+          const skillScore = Math.floor(Math.random() * 15) + 80 
+          const experienceScore = Math.floor(Math.random() * 20) + 75 
 
           return {
             id: candidate.candidate_id,

@@ -23,7 +23,6 @@ export function UpcomingInterviews({ candidateId }: UpcomingInterviewsProps) {
       try {
         setLoading(true)
         const response = await getCandidateApplications(candidateId)
-        // Filter applications with "Interview" status
         const interviewApplications = response.applications.filter((app) => app.status === "Interview")
         setInterviews(interviewApplications)
       } catch (error) {
@@ -69,16 +68,13 @@ export function UpcomingInterviews({ candidateId }: UpcomingInterviewsProps) {
         </Card>
       ) : (
         interviews.map((interview) => {
-          // For demo purposes, generate a random future date for the interview
           const interviewDate = new Date()
           interviewDate.setDate(interviewDate.getDate() + Math.floor(Math.random() * 14) + 1)
 
-          // Random time slots
           const timeSlots = ["10:00 AM", "2:30 PM", "4:00 PM"]
           const randomTimeIndex = Math.floor(Math.random() * timeSlots.length)
           const interviewTime = timeSlots[randomTimeIndex]
 
-          // Random durations
           const durations = ["30 minutes", "45 minutes", "60 minutes"]
           const randomDurationIndex = Math.floor(Math.random() * durations.length)
           const duration = durations[randomDurationIndex]

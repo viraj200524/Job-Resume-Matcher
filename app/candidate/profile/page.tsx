@@ -49,8 +49,6 @@ export default function CandidateProfile() {
     e.preventDefault()
     setSaving(true)
 
-    // In a real app, you would implement an API call to update the candidate data
-    // For now, we'll just simulate a successful update
     setTimeout(() => {
       setSaving(false)
       toast({

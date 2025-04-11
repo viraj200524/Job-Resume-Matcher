@@ -38,7 +38,6 @@ export default function CandidateDashboard() {
       try {
         setLoading(true)
         
-        // Fetch candidate details by email
         let candidateResponse;
         try {
           candidateResponse = await getCandidateByEmail(user.email);
@@ -57,7 +56,6 @@ export default function CandidateDashboard() {
         
         const candidateId = candidateResponse.candidate.candidate_id;
 
-        // Fetch top matches
         let matchesResponse = { top_matches: [] };
         try {
           matchesResponse = await getTopMatches(candidateId);
@@ -65,7 +63,6 @@ export default function CandidateDashboard() {
           console.error("Error fetching top matches:", error);
         }
 
-        // Fetch applications
         let applicationsResponse = { applications: [] };
         try {
           applicationsResponse = await getCandidateApplications(candidateId);
@@ -73,13 +70,11 @@ export default function CandidateDashboard() {
           console.error("Error fetching applications:", error);
         }
 
-        // Calculate profile completion based on filled fields
         const candidate = candidateResponse.candidate;
         const totalFields = Object.keys(candidate).length;
         const filledFields = Object.values(candidate).filter((value) => value && value !== "None").length;
         const profileCompletion = Math.round((filledFields / totalFields) * 100);
 
-        // Count interviews (applications with status "Interview")
         const interviews = applicationsResponse.applications.filter((app) => app.status === "Interview").length;
 
         setCandidateData({

@@ -52,8 +52,6 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
   const initializeRoom = async () => {
     try {
       setJoining(true)
-      // In a real app, you would check if a room already exists for this interview
-      // and only create a new one if needed
       const room = await createVideoRoom({
         roomName: `interview-${interviewData.interview_id}`,
         config: {
@@ -87,7 +85,6 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
 
     setSendingEmail(true)
     try {
-      // In a real app, this would be a server action or API call
       // const emailHtml = generateInterviewInvitationEmail(
       //   interviewData.candidate_name,
       //   interviewData.job_title,
@@ -97,7 +94,6 @@ export default function RecruiterInterviewPage({ params }: { params: { id: strin
       //   roomUrl,
       // )
 
-      // This would be handled server-side in a real app
       // await sendEmail({
       //   to: "candidate@example.com", // In a real app, this would be interviewData.candidate_email
       //   subject: `Interview Invitation: ${interviewData.job_title} at ${interviewData.company}`,

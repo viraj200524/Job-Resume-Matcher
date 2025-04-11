@@ -5,7 +5,6 @@ import { Sparkles, ArrowRight, Briefcase, Users, FileText, Video, BarChart } fro
 export default function Home() {
   return (
     <div className="flex flex-col min-h-[calc(100vh-3.5rem)]">
-      {/* Hero Section */}
       <section className="relative py-20 md:py-32 overflow-hidden bg-gradient-to-b from-blue-50 to-white">
         <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
         <div className="container mx-auto px-4 relative z-10">
@@ -39,7 +38,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Section */}
       <section className="py-16 md:py-24 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -117,7 +115,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="py-16 md:py-24 bg-gradient-to-r from-blue-600 to-cyan-500 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Find Your Perfect Match?</h2>

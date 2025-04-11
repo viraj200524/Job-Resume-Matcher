@@ -35,18 +35,15 @@ export default function RecruiterAnalytics() {
       try {
         setLoading(true)
 
-        // Fetch candidates and jobs
         const candidatesResponse = await getCandidates()
         const jobsResponse = await getJobs()
 
-        // Calculate job stats
         const jobStats = {
           active: Math.floor(jobsResponse.jobs.length * 0.6),
           expired: Math.floor(jobsResponse.jobs.length * 0.3),
           draft: Math.floor(jobsResponse.jobs.length * 0.1),
         }
 
-        // Generate random application stats
         const totalApplications = candidatesResponse.candidates.length * 3
         const applicationStats = {
           total: totalApplications,
@@ -57,7 +54,6 @@ export default function RecruiterAnalytics() {
           offered: Math.floor(totalApplications * 0.05),
         }
 
-        // Generate application by job data
         const jobTitles = jobsResponse.jobs.slice(0, 5).map((job: any) => job.job_title)
         const applicationsByJob = {
           labels: jobTitles,
@@ -70,7 +66,6 @@ export default function RecruiterAnalytics() {
           ],
         }
 
-        // Generate applications over time data
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
         const applicationsOverTime = {
           labels: months,
@@ -86,7 +81,6 @@ export default function RecruiterAnalytics() {
           ],
         }
 
-        // Generate candidate source distribution data
         const candidateSourceDistribution = {
           labels: ["Job Board", "LinkedIn", "Referral", "Company Website", "Other"],
           datasets: [

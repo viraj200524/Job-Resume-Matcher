@@ -27,7 +27,6 @@ export default function CandidateApplications() {
       try {
         setLoading(true)
 
-        // Get candidate ID from email
         try {
           const candidateResponse = await getCandidateByEmail(user.email)
 
@@ -37,7 +36,6 @@ export default function CandidateApplications() {
             return
           }
 
-          // Fetch applications for this candidate
           const response = await getCandidateApplications(candidateResponse.candidate.candidate_id)
           setApplications(response.applications)
         } catch (error) {
@@ -59,7 +57,6 @@ export default function CandidateApplications() {
     }
   }, [user])
 
-  // Filter applications based on active tab
   const filteredApplications = applications.filter((application) => {
     if (activeTab === "all") return true
     if (activeTab === "active") return ["Pending", "Reviewing"].includes(application.status)

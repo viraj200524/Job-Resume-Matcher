@@ -50,7 +50,6 @@ export default function CandidateMatches() {
         
         const candidateId = candidateResponse.candidate.candidate_id;
 
-        // Fetch matches
         const response = await getCandidateMatches(candidateId)
         setJobMatches(response.matches)
       } catch (error) {
@@ -66,7 +65,6 @@ export default function CandidateMatches() {
     }
   }, [user])
 
-  // Filter jobs based on search term and active tab
   const filteredJobs = jobMatches.filter((job) => {
     const matchesSearch = 
       (job.job_title?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||

@@ -29,7 +29,6 @@ export default function InterviewPage({ params }: { params: { id: string } }) {
         
         if (response) {
           setInterviewData(response.interview)
-          // setInterviewData(interview)
         } else {
           setError("Interview not found")
         }
@@ -49,8 +48,6 @@ export default function InterviewPage({ params }: { params: { id: string } }) {
   const initializeRoom = async () => {
     try {
       setJoining(true)
-      // In a real app, you would check if a room already exists for this interview
-      // and only create a new one if needed
       const room = await createVideoRoom({
         roomName: `interview-${interviewData.interview_id}`,
         config: {

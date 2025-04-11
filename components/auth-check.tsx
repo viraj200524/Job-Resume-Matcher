@@ -21,7 +21,6 @@ export function AuthCheck({ children, requiredRole }: AuthCheckProps) {
     if (!user) {
       router.push("/login")
     } else if (requiredRole && user.role !== requiredRole) {
-      // Redirect to the appropriate dashboard if the user has the wrong role
       if (user.role === "candidate") {
         router.push("/candidate/dashboard")
       } else if (user.role === "recruiter") {
